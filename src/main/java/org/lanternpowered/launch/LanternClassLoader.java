@@ -23,14 +23,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.lanternpowered.server;
+package org.lanternpowered.launch;
 
+import com.google.common.io.ByteStreams;
+import org.lanternpowered.launch.transformer.ClassTransformer;
+import org.lanternpowered.launch.transformer.ClassTransformers;
+import org.lanternpowered.launch.transformer.Exclusion;
+import org.lanternpowered.server.LanternServer;
+
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A {@link ClassLoader} that gives complete control over all the libraries used by
@@ -62,6 +75,7 @@ public final class LanternClassLoader extends URLClassLoader {
 
         classLoader = new LanternClassLoader(urls.toArray(new URL[urls.size()]),
                 ClassLoader.getSystemClassLoader());
+        ClassTransformers.get().addExclusion(Exclusion.forClass("com.google.common.io.ByteStreams"));
         Thread.currentThread().setContextClassLoader(classLoader);
     }
 
@@ -73,6 +87,16 @@ public final class LanternClassLoader extends URLClassLoader {
     public static LanternClassLoader get() {
         return classLoader;
     }
+
+    private final Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<>();
+    private final Set<String> invalidClasses = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    private final Set<String> loaderExclusions = new HashSet<>(Arrays.asList(
+            "org.lanternpowered.launch.",
+            "org.objectweb.asm",
+            /*"java.",*/
+            "javax.",
+            "sun."));
 
     private LanternClassLoader(URL[] urls, ClassLoader parent) {
         super(urls, parent);
@@ -95,33 +119,81 @@ public final class LanternClassLoader extends URLClassLoader {
 
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        // Make sure that no new class loaders are created
-        final Class<?> thisClass = getClass();
-        if (name.equals(thisClass.getName())) {
-            return thisClass;
-        }
         synchronized (getClassLoadingLock(name)) {
             // First, check if the class has already been loaded
             Class<?> c = findLoadedClass(name);
             if (c == null) {
-                if (name.startsWith("java.") ||
-                        name.startsWith("javax.") ||
-                        name.startsWith("sun.")) {
-                    c = getParent().loadClass(name);
-                } else {
+                boolean flag = false;
+                for (String loaderExclusion : this.loaderExclusions) {
+                    if (name.startsWith(loaderExclusion)) {
+                        flag = true;
+                        break;
+                    }
+                }
+                if (!flag) {
                     try {
                         c = findClass(name);
                     } catch (ClassNotFoundException ignored) {
                     }
-                    if (c == null) {
-                        c = getParent().loadClass(name);
-                    }
+                }
+                if (c == null) {
+                    c = getParent().loadClass(name);
                 }
             }
             if (resolve) {
                 resolveClass(c);
             }
             return c;
+        }
+    }
+
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        if (this.invalidClasses.contains(name)) {
+            throw new ClassNotFoundException(name);
+        }
+        if (this.cachedClasses.containsKey(name)) {
+            return this.cachedClasses.get(name);
+        }
+        final ClassTransformers transformers = ClassTransformers.get();
+        for (Exclusion exclusion : transformers.getExclusions()) {
+            if (exclusion.isApplicableFor(name)) {
+                return super.findClass(name);
+            }
+        }
+        final String fileName = name.replace('.', '/').concat(".class");
+        final URL resource = findResource(fileName);
+        if (resource == null) {
+            this.invalidClasses.add(name);
+            throw new ClassNotFoundException(name);
+        }
+        try {
+            final int lastDot = name.lastIndexOf('.');
+            final String packageName = lastDot == -1 ? "" : name.substring(0, lastDot);
+
+            final Package pkg = getPackage(packageName);
+            if (pkg == null) {
+                definePackage(packageName, null, null, null, null, null, null, null);
+            }
+
+            final InputStream is = resource.openStream();
+            byte[] bytes = new byte[is.available()];
+            ByteStreams.readFully(is, bytes);
+            is.close();
+
+            for (ClassTransformer transformer : transformers.getTransformers()) {
+                try {
+                    bytes = transformer.transform(this, name, bytes);
+                } catch (Exception e) {
+                    System.err.println("An error occurred while transforming " + name + ": " + e);
+                }
+            }
+            final Class<?> clazz = defineClass(name, bytes, 0, bytes.length);
+            this.cachedClasses.put(name, clazz);
+            return clazz;
+        } catch (Throwable e) {
+            this.invalidClasses.add(name);
+            throw new ClassNotFoundException(name, e);
         }
     }
 
