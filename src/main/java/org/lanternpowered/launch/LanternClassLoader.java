@@ -150,7 +150,7 @@ public final class LanternClassLoader extends URLClassLoader {
         }
     }
 
-    protected Class<?> findClass(String name, boolean resolve) throws ClassNotFoundException {
+    private Class<?> findClass(String name, boolean resolve) throws ClassNotFoundException {
         if (this.invalidClasses.contains(name)) {
             throw new ClassNotFoundException(name);
         }
@@ -191,7 +191,7 @@ public final class LanternClassLoader extends URLClassLoader {
                         final Class<?> superClass = loadClass(superName.replace('/', '.'), resolve);
                         final Class<?>[] interfaces0 = new Class<?>[interfaces.length];
                         for (int i = 0; i < interfaces.length; i++) {
-                            interfaces0[i] = loadClass(interfaces[i].replace('/', '.'));
+                            interfaces0[i] = loadClass(interfaces[i].replace('/', '.'), resolve);
                         }
                         for (ClassTransformer transformer : transformers.getTransformers()) {
                             transformer.visit(LanternClassLoader.this, name, superClass, interfaces0);

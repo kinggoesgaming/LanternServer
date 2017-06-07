@@ -27,10 +27,6 @@ package org.lanternpowered.launch;
 
 import org.lanternpowered.launch.transformer.ClassTransformers;
 import org.lanternpowered.launch.transformer.Exclusion;
-import org.lanternpowered.launch.transformer.at.AccessTransformer;
-import org.lanternpowered.launch.transformer.at.AccessTransformers;
-
-import java.io.IOException;
 
 public final class LanternLaunch {
 
@@ -60,14 +56,6 @@ public final class LanternLaunch {
                 Exclusion.forPackage("io.netty"),
                 Exclusion.forPackage("jline"),
                 Exclusion.forPackage("it.unimi.dsi.fastutil"));
-
-        try {
-            AccessTransformers.register(LanternLaunch.class.getResourceAsStream("/internal/api_at.cfg"));
-            AccessTransformers.register(LanternLaunch.class.getResourceAsStream("/internal/impl_at.cfg"));
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-        transformers.addTransformer(new AccessTransformer());
 
         try {
             final Class<?> serverLaunchClass = classLoader.forName("org.lanternpowered.server.LanternServerLaunch", true);
