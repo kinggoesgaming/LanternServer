@@ -30,6 +30,9 @@ import org.lanternpowered.launch.transformer.ClassTransformer;
 import org.lanternpowered.launch.transformer.ClassTransformers;
 import org.lanternpowered.launch.transformer.Exclusion;
 import org.lanternpowered.server.LanternServer;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -94,7 +97,7 @@ public final class LanternClassLoader extends URLClassLoader {
     private final Set<String> loaderExclusions = new HashSet<>(Arrays.asList(
             "org.lanternpowered.launch.",
             "org.objectweb.asm",
-            /*"java.",*/
+            "java.",
             "javax.",
             "sun."));
 
@@ -132,7 +135,7 @@ public final class LanternClassLoader extends URLClassLoader {
                 }
                 if (!flag) {
                     try {
-                        c = findClass(name);
+                        c = findClass(name, resolve);
                     } catch (ClassNotFoundException ignored) {
                     }
                 }
@@ -147,8 +150,7 @@ public final class LanternClassLoader extends URLClassLoader {
         }
     }
 
-    @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
+    protected Class<?> findClass(String name, boolean resolve) throws ClassNotFoundException {
         if (this.invalidClasses.contains(name)) {
             throw new ClassNotFoundException(name);
         }
@@ -181,6 +183,25 @@ public final class LanternClassLoader extends URLClassLoader {
             ByteStreams.readFully(is, bytes);
             is.close();
 
+            final ClassReader reader = new ClassReader(bytes);
+            reader.accept(new ClassVisitor(Opcodes.ASM5) {
+                @Override
+                public void visit(int version, int access, String name0, String signature, String superName, String[] interfaces) {
+                    try {
+                        final Class<?> superClass = loadClass(superName.replace('/', '.'), resolve);
+                        final Class<?>[] interfaces0 = new Class<?>[interfaces.length];
+                        for (int i = 0; i < interfaces.length; i++) {
+                            interfaces0[i] = loadClass(interfaces[i].replace('/', '.'));
+                        }
+                        for (ClassTransformer transformer : transformers.getTransformers()) {
+                            transformer.visit(LanternClassLoader.this, name, superClass, interfaces0);
+                        }
+                    } catch (ClassNotFoundException ignored) {
+                        // Will be thrown later...
+                    }
+                }
+            }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+
             for (ClassTransformer transformer : transformers.getTransformers()) {
                 try {
                     bytes = transformer.transform(this, name, bytes);
@@ -188,6 +209,7 @@ public final class LanternClassLoader extends URLClassLoader {
                     System.err.println("An error occurred while transforming " + name + ": " + e);
                 }
             }
+
             final Class<?> clazz = defineClass(name, bytes, 0, bytes.length);
             this.cachedClasses.put(name, clazz);
             return clazz;
@@ -195,6 +217,11 @@ public final class LanternClassLoader extends URLClassLoader {
             this.invalidClasses.add(name);
             throw new ClassNotFoundException(name, e);
         }
+    }
+
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        return findClass(name, false);
     }
 
     @Override

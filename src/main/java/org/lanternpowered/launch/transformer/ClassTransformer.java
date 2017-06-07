@@ -1,7 +1,8 @@
 package org.lanternpowered.launch.transformer;
 
-@FunctionalInterface
 public interface ClassTransformer {
+
+    void visit(ClassLoader loader, String className, Class<?> superClass, Class<?>[] interfaces);
 
     byte[] transform(ClassLoader loader, String className, byte[] byteCode);
 }
