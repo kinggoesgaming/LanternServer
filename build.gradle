@@ -170,18 +170,14 @@ runConfigurations {
 // including generated event classes
 jar {
     classifier = 'base'
+    duplicatesStrategy = 'exclude'
 
     exclude '**/*.max.json'
     exclude 'log4j2_indev.xml'
     // Include the api classes
-    from (api.sourceSets.main.output, {
-        exclude 'LICENSE.txt'
-        exclude 'META-INF/MANIFEST.MF'
-    })
+    from api.sourceSets.main.output
     // Include generated event classes
-    from (fileTree(api.tasks.genEventImpl.outputs.files.first()), {
-        exclude 'META-INF/MANIFEST.MF'
-    })
+    from fileTree(api.tasks.genEventImpl.outputs.files.first())
 
     // Include the java 6 classes
     from sourceSets.java6.output

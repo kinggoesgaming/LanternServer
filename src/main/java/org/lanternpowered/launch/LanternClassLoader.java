@@ -135,8 +135,11 @@ public final class LanternClassLoader extends URLClassLoader {
                 throw new RuntimeException(e);
             }
         }
-        Collections.sort(libraryNames);
-        libraryNames.forEach(name -> System.out.println("Loaded library: " + name));
+        if ("true".equalsIgnoreCase(System.getProperty("log-loaded-libraries"))) {
+            // Sort the library names, no mess, or at least try to reduce it
+            Collections.sort(libraryNames);
+            libraryNames.forEach(name -> System.out.println("Loaded library: " + name));
+        }
 
         // The server class loader will load lantern, the api and all the plugins
         final LanternClassLoader serverClassLoader = new LanternClassLoader(
@@ -163,15 +166,23 @@ public final class LanternClassLoader extends URLClassLoader {
 
     // A classloader that will be used to load library class files
     private final LibraryClassLoader libraryClassLoader;
+    private final Set<URL> libraryUrls = new HashSet<>();
+    private final Set<URL> urls = new HashSet<>();
 
     private static final class LibraryClassLoader extends URLClassLoader {
         private LibraryClassLoader(URL[] urls) {
             super(urls);
         }
+        @Override
+        protected void addURL(URL url) {
+            super.addURL(url);
+        }
     }
 
     private LanternClassLoader(URL[] urls, URL[] libraryUrls, ClassLoader parent) {
         super(urls, parent);
+        this.urls.addAll(Arrays.asList(urls));
+        this.libraryUrls.addAll(Arrays.asList(libraryUrls));
         this.libraryClassLoader = new LibraryClassLoader(libraryUrls);
     }
 
@@ -192,16 +203,24 @@ public final class LanternClassLoader extends URLClassLoader {
      * @param url The url
      */
     public void addLibraryURL(URL url) {
-        super.addURL(url);
-        // New classes are available, let the class loader try again
-        this.invalidClasses.clear();
+        requireNonNull(url, "url");
+        // Make sure that there can't be duplicate libraries
+        if (this.libraryUrls.add(url)) {
+            this.libraryClassLoader.addURL(url);
+            // New classes are available, let the class loader try again
+            this.invalidClasses.clear();
+        }
     }
 
     @Override
     public void addURL(URL url) {
-        super.addURL(url);
-        // New classes are available, let the class loader try again
-        this.invalidClasses.clear();
+        requireNonNull(url, "url");
+        // Make sure that there can't be duplicate jars
+        if (this.urls.add(url)) {
+            super.addURL(url);
+            // New classes are available, let the class loader try again
+            this.invalidClasses.clear();
+        }
     }
 
     @Override
