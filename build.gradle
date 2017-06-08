@@ -204,12 +204,8 @@ void applyManifest(def jar) {
                 'Specification-Version': api.version,
                 'Specification-Vendor': api.url
         )
-        if (commit) {
-            attributes['Git-Commit'] = commit
-        }
-        if (branch) {
-            attributes['Git-Branch'] = branch
-        }
+        if (commit) attributes['Git-Commit'] = commit
+        if (branch) attributes['Git-Branch'] = branch
     }
 }
 
@@ -323,8 +319,6 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
     for (Map.Entry<String, Tuple2<Dependency, File>> entry : dependencyMap.entrySet()) {
         Tuple2<Dependency, File> t = entry.value;
         from (t.second, { spec ->
-            // This must be done, otherwise the last d instance is used,
-            // this method will be called later
             Dependency d = t.first
             spec.rename {
                 "libraries/${d.group.replace('.', '/')}/$d.name/$d.version/$d.name-${d.version}.jar"
@@ -353,78 +347,6 @@ void processFatJar(Set<String> entries, Map<String, Tuple2<Dependency, File>> fi
         }
     }
 }
-
-/*
-
-task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
-    // Include the default jar
-    from zipTree(jar.archivePath)
-
-    // Always update the fat jar
-    outputs.upToDateWhen { false }
-
-    // Generate the dependencies
-    classifier = 'fat'
-
-    Map<String, Tuple2<Dependency, File>> dependencyMap = new HashMap<>()
-    // First the api dependencies
-    processFatJar(api.configurations.compile, dependencyMap)
-    // Implementation dependencies, api ones can be overwritten with newer versions, etc.
-    processFatJar(project.configurations.compile, dependencyMap)
-
-    // Replace the fastutil dependency
-    dependencyMap['it.unimi.dsi:fastutil'] = new Tuple2<>(
-            dependencies.create("it.unimi.dsi:fastutil:$fastutilVersion-minimized"), fastutilJar.archivePath)
-
-    // Include all the dependencies
-    for (Map.Entry<String, Tuple2<Dependency, File>> entry : dependencyMap.entrySet()) {
-        Tuple2<Dependency, File> t = entry.value;
-        from (t.second, { spec ->
-            // This must be done, otherwise the last d instance is used,
-            // this method will be called later
-            Dependency d = t.first
-            spec.rename {
-                "libraries/${d.group.replace('.', '/')}/$d.name/$d.version/$d.name-${d.version}.jar"
-            }
-        })
-    }
-}
-
-import java.util.regex.Pattern
-
-void processFatJar(Configuration configuration, Map<String, Tuple2<Dependency, File>> filesMap) {
-    for (Dependency d : configuration.allDependencies) {
-        if (d instanceof SelfResolvingDependency) {
-            continue;
-        }
-        def pattern = Pattern.compile(".+/$d.name-(.+)\\.jar");
-        def end = "$d.name-${d.version}.jar"
-        for (File file : configurations.runtime) {
-            def name = file.path
-            if (name.contains('jsr305')) {
-               // System.out.println("DEBUG F: " + name)
-            }
-            if (!name.endsWith(end) || !name.contains(d.group)) {
-                def matcher = pattern.matcher(name)
-                // It's possible that the found file and the dependency versions
-                // are different, let's throw a exception in this case because
-                // it should be fixed
-                if (matcher.matches()) {
-                    def version = matcher.group(1)
-                    if (version != d.version) {
-                        throw new IllegalStateException("Dependency version for $d.name is different for the file ($version) " +
-                                "and configuration ($d.version)");
-                    }
-                }
-                continue
-            }
-            def n = "$d.group:$d.name"
-            filesMap[n] = new Tuple2<>(d, file)
-            break
-        }
-    }
-}
-*/
 
 task sourceJar(type: Jar) {
     classifier = 'sources'
