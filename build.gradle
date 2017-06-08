@@ -101,7 +101,6 @@ configurations {
 }
 
 ext.fastutilVersion = '7.1.0'
-ext.jlineVersion = '3.3.0'
 // Project dependencies
 dependencies {
     compile api
