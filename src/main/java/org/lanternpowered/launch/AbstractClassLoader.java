@@ -23,10 +23,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.lanternpowered.launch.transformer;
+package org.lanternpowered.launch;
 
-@FunctionalInterface
-public interface ClassTransformer {
+import java.net.URL;
+import java.net.URLClassLoader;
 
-    byte[] transform(ClassLoader loader, String className, byte[] byteCode);
+abstract class AbstractClassLoader extends URLClassLoader {
+
+    AbstractClassLoader(URL[] urls, ClassLoader parent) {
+        super(urls, parent);
+    }
+
+    @Override
+    public void addURL(URL url) {
+        super.addURL(url);
+    }
+
+    /**
+     * The same as {@link Class#forName(String, boolean, ClassLoader)},
+     * but called for this {@link ClassLoader}.
+     *
+     * @see Class#forName(String, boolean, ClassLoader)
+     */
+    public Class<?> forName(String name, boolean initialize) throws ClassNotFoundException {
+        return Class.forName(name, initialize, this);
+    }
 }

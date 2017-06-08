@@ -23,10 +23,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.lanternpowered.launch.transformer;
+package org.lanternpowered.launch;
 
-@FunctionalInterface
-public interface ClassTransformer {
+import java.net.URL;
+import java.net.URLClassLoader;
 
-    byte[] transform(ClassLoader loader, String className, byte[] byteCode);
+/**
+ * A {@link URLClassLoader} that ignored any kind of transformations,
+ * optimal to load libraries that don't have to be touched.
+ * <p>
+ * Allows libraries to be loaded at runtime through {@link #addURL(URL)}.
+ */
+public final class LibraryClassLoader extends AbstractClassLoader {
+
+    static {
+        ClassLoader.registerAsParallelCapable();
+    }
+
+    LibraryClassLoader(URL[] urls, ClassLoader parent) {
+        super(urls, parent);
+    }
 }

@@ -25,37 +25,11 @@
  */
 package org.lanternpowered.launch;
 
-import org.lanternpowered.launch.transformer.ClassTransformers;
-import org.lanternpowered.launch.transformer.Exclusion;
-
 public final class LanternLaunch {
 
     public static void main(String[] args) {
         // Initialize the class loader
-        final LanternClassLoader classLoader = LanternClassLoader.get();
-
-        final ClassTransformers transformers = ClassTransformers.get();
-        transformers.addExclusions(
-                Exclusion.forPackage("groovy"),
-                Exclusion.forPackage("groovyjarjarasm"),
-                Exclusion.forPackage("groovyjarjarantlr"),
-                Exclusion.forPackage("ninja.leaping.configurate"),
-                Exclusion.forPackage("com.google"),
-                Exclusion.forPackage("com.typesafe.config"),
-                Exclusion.forPackage("com.flowpowered.noise"),
-                Exclusion.forPackage("com.flowpowered.math"),
-                Exclusion.forPackage("com.zaxxer.hikari"),
-                Exclusion.forPackage("org.codehaus.groovy"),
-                Exclusion.forPackage("org.yaml.snakeyaml"),
-                Exclusion.forPackage("org.sqlite"),
-                Exclusion.forPackage("org.mariadb.jdbc"),
-                Exclusion.forPackage("org.objectweb.asm"),
-                Exclusion.forPackage("org.apache"),
-                Exclusion.forPackage("org.aopalliance"),
-                Exclusion.forPackage("org.fusesource"),
-                Exclusion.forPackage("io.netty"),
-                Exclusion.forPackage("jline"),
-                Exclusion.forPackage("it.unimi.dsi.fastutil"));
+        final ServerClassLoader classLoader = ServerClassLoader.get();
 
         try {
             final Class<?> serverLaunchClass = classLoader.forName("org.lanternpowered.server.LanternServerLaunch", true);
