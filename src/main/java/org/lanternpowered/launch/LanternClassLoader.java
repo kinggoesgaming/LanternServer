@@ -25,6 +25,8 @@
  */
 package org.lanternpowered.launch;
 
+import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.TERMINATE;
 import static java.util.Objects.requireNonNull;
 
 import org.lanternpowered.launch.transformer.ClassTransformer;
@@ -41,9 +43,12 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -102,6 +107,36 @@ public final class LanternClassLoader extends URLClassLoader {
         final List<URL> libraryUrls = new ArrayList<>();
         final List<String> libraryNames = new ArrayList<>();
 
+        // First cleanup old libraries
+        final Path internalLibrariesPath = Paths.get(".internal-libraries");
+        try {
+            Files.walkFileTree(internalLibrariesPath, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException e) {
+                    e.printStackTrace();
+                    return TERMINATE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
+                    if (e != null) {
+                        e.printStackTrace();
+                        return TERMINATE;
+                    }
+                    Files.delete(dir);
+                    return CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            System.out.println("Failed to cleanup the internal libraries.");
+            e.printStackTrace();
+        }
         // Scan the jar for library jars
         if (location != null) {
             try (ZipInputStream is = new ZipInputStream(location.openStream())) {
@@ -111,9 +146,10 @@ public final class LanternClassLoader extends URLClassLoader {
                     // Check if it's a library jar
                     if (name.startsWith("libraries") && name.endsWith(".jar")) {
                         // Yay
+                        final String n = name.substring("libraries/".length());
                         final URL url = parent.getResource(name);
                         requireNonNull(url, "Something funky happened");
-                        final Path path = Paths.get(e.getName());
+                        final Path path = internalLibrariesPath.resolve(n);
                         final Path p = path.getParent();
                         if (!Files.exists(p)) {
                             Files.createDirectories(p);
@@ -128,7 +164,7 @@ public final class LanternClassLoader extends URLClassLoader {
                         }
 
                         libraryUrls.add(path.toUri().toURL());
-                        libraryNames.add(name.substring("libraries/".length()));
+                        libraryNames.add(n);
                     }
                 }
             } catch (IOException e) {
