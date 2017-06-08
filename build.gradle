@@ -303,15 +303,23 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
     entries.add 'org.jline:jline-terminal'
     entries.add 'org.jline:jline-reader'
 
-    Map<String, Tuple2<Dependency, File>> dependencyMap = new HashMap<>()
-    processFatJar(entries, dependencyMap)
+    Map<String, Tuple2<Dependency, File>> filesMap = new HashMap<>()
+    configurations.compile.resolvedConfiguration.resolvedArtifacts.each { a ->
+        def id = a.moduleVersion.id
+        def e = "$id.group:$id.name"
+        // Check if we want the artifact
+        if (entries.contains((String) e)) {
+            // Cast is necessary, e is a groovy string
+            filesMap[e] = new Tuple2<>(dependencies.create(id.toString()), a.file)
+        }
+    }
 
     // Replace the fastutil dependency
-    dependencyMap['it.unimi.dsi:fastutil'] = new Tuple2<>(
+    filesMap['it.unimi.dsi:fastutil'] = new Tuple2<>(
             dependencies.create("it.unimi.dsi:fastutil:$fastutilVersion-minimized"), fastutilJar.archivePath)
 
     // Include all the dependencies
-    for (Map.Entry<String, Tuple2<Dependency, File>> entry : dependencyMap.entrySet()) {
+    for (Map.Entry<String, Tuple2<Dependency, File>> entry : filesMap.entrySet()) {
         Tuple2<Dependency, File> t = entry.value;
         from (t.second, { spec ->
             Dependency d = t.first
@@ -327,18 +335,6 @@ static void collectDependencies(Configuration configuration, Set<String> entries
     for (Dependency d : configuration.allDependencies) {
         if (d instanceof ModuleDependency) {
             entries.add((String) "$d.group:$d.name")
-        }
-    }
-}
-
-void processFatJar(Set<String> entries, Map<String, Tuple2<Dependency, File>> filesMap) {
-    configurations.compile.resolvedConfiguration.resolvedArtifacts.each { a ->
-        def id = a.moduleVersion.id
-        def e = "$id.group:$id.name"
-        // Check if we want the artifact
-        if (entries.contains((String) e)) {
-            // Cast is necessary, e is a groovy string
-            filesMap[e] = new Tuple2<>(dependencies.create(id.toString()), a.file)
         }
     }
 }
