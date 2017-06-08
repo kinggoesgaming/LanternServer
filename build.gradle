@@ -289,11 +289,14 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
     classifier = 'fat'
 
     // Collect dependencies
-    Set entries = []
+    Set<String> entries = []
     // Api dependencies
     collectDependencies(api.configurations.compile, entries)
     // Implementation dependencies
     collectDependencies(project.configurations.compile, entries)
+
+    // Don't include the api again
+    entries.remove((String) "$api.group:$api.name")
 
     // Now, lets include some transitive libraries that we need for the other ones
     /// For configurate
@@ -331,22 +334,20 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
 }
 
 // Collect all the dependencies inside the given configuration
-static void collectDependencies(Configuration configuration, Set entries) {
+static void collectDependencies(Configuration configuration, Set<String> entries) {
     for (Dependency d : configuration.allDependencies) {
         if (d instanceof ModuleDependency) {
-            entries.add "$d.group:$d.name"
+            entries.add((String) "$d.group:$d.name")
         }
     }
 }
 
-void processFatJar(Set entries, Map<String, Tuple2<Dependency, File>> filesMap) {
-    Set<String> entries1 = []
-    entries.each { s -> entries1.add((String) s) }
+void processFatJar(Set<String> entries, Map<String, Tuple2<Dependency, File>> filesMap) {
     configurations.compile.resolvedConfiguration.resolvedArtifacts.each { a ->
         def id = a.moduleVersion.id
         def e = "$id.group:$id.name"
         // Check if we want the artifact
-        if (entries1.contains((String) e)) {
+        if (entries.contains((String) e)) {
             // Cast is necessary, e is a groovy string
             filesMap[e] = new Tuple2<>(dependencies.create(id.toString()), a.file)
         }

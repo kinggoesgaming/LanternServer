@@ -28,7 +28,7 @@ package org.lanternpowered.server.library;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import org.lanternpowered.launch.ServerClassLoader;
+import org.lanternpowered.launch.LanternClassLoader;
 import org.lanternpowered.server.game.DirectoryKeys;
 
 import java.io.IOException;
@@ -60,7 +60,7 @@ public final class LibraryManager {
         try (DirectoryStream<Path> dir = Files.newDirectoryStream(this.librariesDir, path -> path.toString().endsWith(".jar"))) {
             for (Path path : dir) {
                 if (this.loadedFiles.add(path)) {
-                    ServerClassLoader.get().getLibraryLoader().addURL(path.toUri().toURL());
+                    LanternClassLoader.get().addLibraryURL(path.toUri().toURL());
                 }
             }
         } catch (IOException e) {

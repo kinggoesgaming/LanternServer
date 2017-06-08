@@ -33,7 +33,7 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import org.lanternpowered.launch.ServerClassLoader;
+import org.lanternpowered.launch.LanternClassLoader;
 import org.lanternpowered.server.game.DirectoryKeys;
 import org.lanternpowered.server.game.Lantern;
 import org.slf4j.Logger;
@@ -181,7 +181,7 @@ public final class LanternPluginManager implements PluginManager {
 
     private void loadPlugin(PluginCandidate candidate) {
         final String id = candidate.getId();
-        final ServerClassLoader classLoader = ServerClassLoader.get();
+        final LanternClassLoader classLoader = LanternClassLoader.get();
 
         if (candidate.getSource().isPresent()) {
             try {

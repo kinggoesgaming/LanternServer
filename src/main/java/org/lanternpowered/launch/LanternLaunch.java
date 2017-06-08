@@ -29,7 +29,7 @@ public final class LanternLaunch {
 
     public static void main(String[] args) {
         // Initialize the class loader
-        final ServerClassLoader classLoader = ServerClassLoader.get();
+        final LanternClassLoader classLoader = LanternClassLoader.get();
 
         try {
             final Class<?> serverLaunchClass = classLoader.forName("org.lanternpowered.server.LanternServerLaunch", true);
