@@ -61,6 +61,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -202,6 +204,9 @@ public final class LanternClassLoader extends URLClassLoader {
     private final Set<String> invalidClasses = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final ThreadLocal<byte[]> loadBuffer = ThreadLocal.withInitial(() -> new byte[BUFFER_SIZE]);
 
+    // A map with all the manifests for their urls
+    private final Map<URL, Manifest> manifestFiles = new ConcurrentHashMap<>();
+
     // A classloader that will be used to load library class files
     private final LibraryClassLoader libraryClassLoader;
     private final Set<URL> libraryUrls = new HashSet<>();
@@ -332,8 +337,6 @@ public final class LanternClassLoader extends URLClassLoader {
             }
         }
         try (InputStream is = url.openStream()) {
-            definePackage(name);
-
             // Get the buffer
             byte[] buffer = this.loadBuffer.get();
 
@@ -365,22 +368,35 @@ public final class LanternClassLoader extends URLClassLoader {
                 }
             }
 
-            final Class<?> clazz = defineClass(name, result, 0, result.length, getCodeSource(name, url));
-            this.cachedClasses.put(name, clazz);
-            return clazz;
+            return defineClass(name, result, 0, result.length, url);
         } catch (Throwable e) {
             this.invalidClasses.add(name);
             throw new ClassNotFoundException(name, e);
         }
     }
 
-    private void definePackage(String name) {
-        final int lastDot = name.lastIndexOf('.');
-        final String packageName = lastDot == -1 ? "" : name.substring(0, lastDot);
+    private Class<?> defineClass(String name, URL url) throws ClassNotFoundException {
+        try (InputStream is = url.openStream()) {
+            // Get the buffer
+            byte[] buffer = this.loadBuffer.get();
 
-        final Package pkg = getPackage(packageName);
-        if (pkg == null) {
-            definePackage(packageName, null, null, null, null, null, null, null);
+            int read;
+            int totalLength = 0;
+            while ((read = is.read(buffer, totalLength, buffer.length - totalLength)) != -1) {
+                totalLength += read;
+
+                // Expand the buffer
+                if (totalLength >= buffer.length - 1) {
+                    final byte[] newBuffer = new byte[buffer.length + BUFFER_SIZE];
+                    System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
+                    buffer = newBuffer;
+                }
+            }
+
+            return defineClass(name, buffer, 0, totalLength, url);
+        } catch (IOException e) {
+            this.invalidClasses.add(name);
+            throw new ClassNotFoundException(name, e);
         }
     }
 
@@ -412,32 +428,44 @@ public final class LanternClassLoader extends URLClassLoader {
         return new CodeSource(url, (CodeSigner[]) null);
     }
 
-    private Class<?> defineClass(String name, URL url) throws ClassNotFoundException {
-        definePackage(name);
-        try (InputStream is = url.openStream()) {
-            // Get the buffer
-            byte[] buffer = this.loadBuffer.get();
+    private Class<?> defineClass(String name, byte[] b, int off, int len, URL url) throws ClassNotFoundException {
+        final CodeSource source = getCodeSource(name, url);
 
-            int read;
-            int totalLength = 0;
-            while ((read = is.read(buffer, totalLength, buffer.length - totalLength)) != -1) {
-                totalLength += read;
+        final int lastDot = name.lastIndexOf('.');
+        final String packageName = lastDot == -1 ? "" : name.substring(0, lastDot);
 
-                // Expand the buffer
-                if (totalLength >= buffer.length - 1) {
-                    final byte[] newBuffer = new byte[buffer.length + BUFFER_SIZE];
-                    System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-                    buffer = newBuffer;
-                }
+        final Package pkg = getPackage(packageName);
+        if (pkg == null) {
+            Manifest manifest = null;
+            if (source != null) {
+                manifest = this.manifestFiles.computeIfAbsent(source.getLocation(), u -> {
+                    // Only files can be opened
+                    if (!u.getProtocol().equals("file")) {
+                        return null;
+                    }
+                    final File file = new File(u.getFile());
+                    // Fail, maybe it's not a file?
+                    if (!file.exists()) {
+                        return null;
+                    }
+                    try (JarFile jarFile = new JarFile(file)) {
+                        return jarFile.getManifest();
+                    } catch (IOException e) {
+                        // Something went wrong, let's just fail
+                        return null;
+                    }
+                });
             }
-
-            final Class<?> clazz = defineClass(name, buffer, 0, totalLength, getCodeSource(name, url));
-            this.cachedClasses.put(name, clazz);
-            return clazz;
-        } catch (IOException e) {
-            this.invalidClasses.add(name);
-            throw new ClassNotFoundException(name, e);
+            if (manifest != null) {
+                definePackage(packageName, manifest, source.getLocation());
+            } else {
+                definePackage(packageName, null, null, null, null, null, null, null);
+            }
         }
+
+        final Class<?> clazz = defineClass(name, b, off, len);
+        this.cachedClasses.put(name, clazz);
+        return clazz;
     }
 
     @SuppressWarnings("unchecked")

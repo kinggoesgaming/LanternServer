@@ -17,7 +17,6 @@ buildscript {
     dependencies {
         classpath 'org.spongepowered:spongegradle:0.8.1-SNAPSHOT'
         classpath 'org.lanternpowered:lanterngradle:1.0.0'
-        classpath 'org.apache.logging.log4j:log4j-core:2.8.1'
     }
 }
 
@@ -283,6 +282,8 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
     Set<String> entries = []
     // Don't include the api again
     entries.add "$api.group:$api.name"
+    // We already include 'asm-all'
+    entries.add 'org.ow2.asm:asm'
 
     Map<String, Tuple2<Dependency, File>> filesMap = new HashMap<>()
     configurations.compile.resolvedConfiguration.resolvedArtifacts.each { a ->
