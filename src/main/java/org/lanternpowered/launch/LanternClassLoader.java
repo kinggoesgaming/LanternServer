@@ -109,33 +109,34 @@ public final class LanternClassLoader extends URLClassLoader {
 
         // First cleanup old libraries
         final Path internalLibrariesPath = Paths.get(".internal-libraries");
-        try {
-            Files.walkFileTree(internalLibrariesPath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return CONTINUE;
-                }
+        if (Files.exists(internalLibrariesPath)) {
+            try {
+                Files.walkFileTree(internalLibrariesPath, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        Files.delete(file);
+                        return CONTINUE;
+                    }
 
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException e) {
-                    e.printStackTrace();
-                    return TERMINATE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
-                    if (e != null) {
+                    @Override
+                    public FileVisitResult visitFileFailed(Path file, IOException e) {
                         e.printStackTrace();
                         return TERMINATE;
                     }
-                    Files.delete(dir);
-                    return CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            System.out.println("Failed to cleanup the internal libraries.");
-            e.printStackTrace();
+
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
+                        if (e != null) {
+                            e.printStackTrace();
+                            return TERMINATE;
+                        }
+                        Files.delete(dir);
+                        return CONTINUE;
+                    }
+                });
+            } catch (IOException e) {
+                System.out.println("Failed to cleanup the internal libraries: " + e);
+            }
         }
         // Scan the jar for library jars
         if (location != null) {
