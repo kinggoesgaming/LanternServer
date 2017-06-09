@@ -279,38 +279,18 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
     // Generate the dependencies
     classifier = 'fat'
 
-    // Collect dependencies
+    // All the entries that should be ignored
     Set<String> entries = []
-    // Api dependencies
-    collectDependencies(api.configurations.compile, entries)
-    // Implementation dependencies
-    collectDependencies(project.configurations.compile, entries)
-
     // Don't include the api again
-    entries.remove((String) "$api.group:$api.name")
-
-    // Now, lets include some transitive libraries that we need for the other ones
-    /// For configurate
-    entries.add 'ninja.leaping.configurate:configurate-core'
-    entries.add 'org.yaml:snakeyaml'
-    entries.add 'com.typesafe:config'
-
-    /// For Guice
-    entries.add 'javax.inject:javax.inject'
-    entries.add 'aopalliance:aopalliance'
-
-    /// For Jline
-    entries.add 'org.jline:jline-terminal'
-    entries.add 'org.jline:jline-reader'
+    entries.add "$api.group:$api.name"
 
     Map<String, Tuple2<Dependency, File>> filesMap = new HashMap<>()
     configurations.compile.resolvedConfiguration.resolvedArtifacts.each { a ->
         def id = a.moduleVersion.id
         def e = "$id.group:$id.name"
-        // Check if we want the artifact
-        if (entries.contains((String) e)) {
-            // Cast is necessary, e is a groovy string
-            filesMap[e] = new Tuple2<>(dependencies.create(id.toString()), a.file)
+        // Check if we want the artifact, check for the java (String) and groovy strings (GString)
+        if (!entries.contains(e) && !entries.contains((String) e)) {
+            filesMap[(String) e] = new Tuple2<>(dependencies.create(id.toString()), a.file)
         }
     }
 
@@ -327,15 +307,6 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
                 "libraries/${d.group.replace('.', '/')}/$d.name/$d.version/$d.name-${d.version}.jar"
             }
         })
-    }
-}
-
-// Collect all the dependencies inside the given configuration
-static void collectDependencies(Configuration configuration, Set<String> entries) {
-    for (Dependency d : configuration.allDependencies) {
-        if (d instanceof ModuleDependency) {
-            entries.add((String) "$d.group:$d.name")
-        }
     }
 }
 
