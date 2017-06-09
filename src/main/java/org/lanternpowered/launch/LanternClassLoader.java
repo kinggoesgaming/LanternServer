@@ -49,6 +49,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -307,30 +308,30 @@ public final class LanternClassLoader extends URLClassLoader {
         }
         final String fileName = name.replace('.', '/').concat(".class");
         // Try the server classes
-        URL resource = findResource(fileName);
-        if (resource == null) {
+        URL url = findResource(fileName);
+        if (url == null) {
             // Try library classes
-            resource = this.libraryClassLoader.findResource(fileName);
-            if (resource == null) {
+            url = this.libraryClassLoader.findResource(fileName);
+            if (url == null) {
                 this.invalidClasses.add(name);
                 throw new ClassNotFoundException(name);
             }
             // Just load the library class
-            return defineClass(name, resource);
+            return defineClass(name, url);
         }
         final ClassTransformers transformers = ClassTransformers.get();
         if (transformers.getTransformers().isEmpty()) {
             // Don't bother if there are no transformers
-            return defineClass(name, resource);
+            return defineClass(name, url);
         }
         // Check if the class should be ignored by any kind of transformer
         for (Exclusion exclusion : transformers.getExclusions()) {
             if (exclusion.isApplicableFor(name)) {
                 // Just load the class in this case
-                return defineClass(name, resource);
+                return defineClass(name, url);
             }
         }
-        try (InputStream is = resource.openStream()) {
+        try (InputStream is = url.openStream()) {
             definePackage(name);
 
             // Get the buffer
@@ -364,7 +365,7 @@ public final class LanternClassLoader extends URLClassLoader {
                 }
             }
 
-            final Class<?> clazz = defineClass(name, result, 0, result.length);
+            final Class<?> clazz = defineClass(name, result, 0, result.length, getCodeSource(name, url));
             this.cachedClasses.put(name, clazz);
             return clazz;
         } catch (Throwable e) {
@@ -381,6 +382,34 @@ public final class LanternClassLoader extends URLClassLoader {
         if (pkg == null) {
             definePackage(packageName, null, null, null, null, null, null, null);
         }
+    }
+
+    private CodeSource getCodeSource(String name, URL url) {
+        // Classes without a jar protocol, nope
+        if (!url.getProtocol().equalsIgnoreCase("jar")) {
+            return null;
+        }
+        final String u = url.toString();
+        final String s = "jar:";
+        if (!u.startsWith(s)) {
+            return null;
+        }
+        // The url should end with the following string, this
+        // is pointing to a class inside a jar
+        final String e = "!/" + name.replace('.', '/') + ".class";
+        if (!u.endsWith(e)) {
+            return null;
+        }
+
+        try {
+            url = new URL(u.substring(s.length(), u.length() - e.length()));
+        } catch (MalformedURLException ex) {
+            // Malformed, just fail
+            return null;
+        }
+
+        // Create the code source, no code signers since it's not required
+        return new CodeSource(url, (CodeSigner[]) null);
     }
 
     private Class<?> defineClass(String name, URL url) throws ClassNotFoundException {
@@ -402,7 +431,7 @@ public final class LanternClassLoader extends URLClassLoader {
                 }
             }
 
-            final Class<?> clazz = defineClass(name, buffer, 0, totalLength);
+            final Class<?> clazz = defineClass(name, buffer, 0, totalLength, getCodeSource(name, url));
             this.cachedClasses.put(name, clazz);
             return clazz;
         } catch (IOException e) {
