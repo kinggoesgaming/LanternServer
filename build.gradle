@@ -171,7 +171,6 @@ jar {
     classifier = 'base'
     duplicatesStrategy = 'exclude'
 
-    exclude '**/*.max.json'
     exclude 'log4j2_indev.xml'
     // Include the api classes
     from api.sourceSets.main.output
@@ -301,7 +300,7 @@ task fatJar(type: Jar, dependsOn: [jar, fastutilJar]) {
 
     // Include all the dependencies
     for (Map.Entry<String, Tuple2<Dependency, File>> entry : filesMap.entrySet()) {
-        Tuple2<Dependency, File> t = entry.value;
+        Tuple2<Dependency, File> t = entry.value
         from (t.second, { spec ->
             Dependency d = t.first
             spec.rename {

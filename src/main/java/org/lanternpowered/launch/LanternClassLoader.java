@@ -30,7 +30,6 @@ import static java.nio.file.FileVisitResult.TERMINATE;
 import static java.util.Objects.requireNonNull;
 
 import org.lanternpowered.launch.transformer.ClassTransformer;
-import org.lanternpowered.launch.transformer.ClassTransformers;
 import org.lanternpowered.launch.transformer.Exclusion;
 import org.lanternpowered.server.LanternServer;
 
@@ -61,6 +60,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
@@ -212,6 +212,10 @@ public final class LanternClassLoader extends URLClassLoader {
     private final Set<URL> libraryUrls = new HashSet<>();
     private final Set<URL> urls = new HashSet<>();
 
+    // Class transformer stuff
+    private final List<ClassTransformer> transformers = new CopyOnWriteArrayList<>();
+    private final Set<Exclusion> transformerExclusions = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
     private static final class LibraryClassLoader extends URLClassLoader {
         private LibraryClassLoader(URL[] urls) {
             super(urls);
@@ -230,6 +234,56 @@ public final class LanternClassLoader extends URLClassLoader {
     }
 
     /**
+     * Adds a {@link Exclusion}. All the excluded classes
+     * will be skipped by the {@link ClassTransformer}s.
+     *
+     * @param exclusion The exclusion
+     */
+    public void addTransformerExclusion(Exclusion exclusion) {
+        requireNonNull(exclusion, "exclusion");
+        this.transformerExclusions.add(exclusion);
+    }
+
+    /**
+     * Adds the {@link Exclusion}s. All the excluded classes
+     * will be skipped by the {@link ClassTransformer}s.
+     *
+     * @param exclusions The exclusions
+     */
+    public void addTransformerExclusions(Exclusion... exclusions) {
+        requireNonNull(exclusions, "exclusions");
+        addTransformerExclusions(Arrays.asList(exclusions));
+    }
+
+    /**
+     * Adds the {@link Exclusion}s. All the excluded classes
+     * will be skipped by the {@link ClassTransformer}s.
+     *
+     * @param exclusions The exclusions
+     */
+    public void addTransformerExclusions(Iterable<Exclusion> exclusions) {
+        requireNonNull(exclusions, "exclusions");
+        final List<Exclusion> exclusionList = new ArrayList<>();
+        for (Exclusion exclusion : exclusions) {
+            requireNonNull(exclusion, "exclusion");
+            exclusionList.add(exclusion);
+        }
+        this.transformerExclusions.addAll(exclusionList);
+    }
+
+    /**
+     * Adds a new {@link ClassTransformer}.
+     *
+     * @param classTransformer The class transformer
+     */
+    public void addTransformer(ClassTransformer classTransformer) {
+        requireNonNull(classTransformer, "classTransformer");
+        this.transformers.add(classTransformer);
+        // All the transformer classes should be excluded
+        this.transformerExclusions.add(Exclusion.forClass(classTransformer.getClass().getName(), true));
+    }
+
+    /**
      * The same as {@link Class#forName(String, boolean, ClassLoader)},
      * but called for this {@link ClassLoader}.
      *
@@ -241,7 +295,7 @@ public final class LanternClassLoader extends URLClassLoader {
 
     /**
      * Adds a library {@link URL}. All the library classes
-     * will be ignored by {@link ClassTransformers}.
+     * will be ignored by {@link ClassTransformer}s.
      *
      * @param url The url
      */
@@ -324,13 +378,12 @@ public final class LanternClassLoader extends URLClassLoader {
             // Just load the library class
             return defineClass(name, url);
         }
-        final ClassTransformers transformers = ClassTransformers.get();
-        if (transformers.getTransformers().isEmpty()) {
+        if (this.transformers.isEmpty()) {
             // Don't bother if there are no transformers
             return defineClass(name, url);
         }
         // Check if the class should be ignored by any kind of transformer
-        for (Exclusion exclusion : transformers.getExclusions()) {
+        for (Exclusion exclusion : this.transformerExclusions) {
             if (exclusion.isApplicableFor(name)) {
                 // Just load the class in this case
                 return defineClass(name, url);
@@ -360,7 +413,7 @@ public final class LanternClassLoader extends URLClassLoader {
             System.arraycopy(buffer, 0, result, 0, totalLength);
 
             // Let's start transforming the class
-            for (ClassTransformer transformer : transformers.getTransformers()) {
+            for (ClassTransformer transformer : this.transformers) {
                 try {
                     result = transformer.transform(this, name, result);
                 } catch (Exception e) {
