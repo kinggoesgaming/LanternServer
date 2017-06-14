@@ -376,77 +376,61 @@ public final class LanternClassLoader extends URLClassLoader {
                 throw new ClassNotFoundException(name);
             }
             // Just load the library class
-            return defineClass(name, url);
+            return defineClass(name, url, false);
         }
         if (this.transformers.isEmpty()) {
             // Don't bother if there are no transformers
-            return defineClass(name, url);
+            return defineClass(name, url, false);
         }
         // Check if the class should be ignored by any kind of transformer
         for (Exclusion exclusion : this.transformerExclusions) {
             if (exclusion.isApplicableFor(name)) {
                 // Just load the class in this case
-                return defineClass(name, url);
+                return defineClass(name, url, false);
             }
         }
-        try (InputStream is = url.openStream()) {
-            // Get the buffer
-            byte[] buffer = this.loadBuffer.get();
-
-            int read;
-            int totalLength = 0;
-            while ((read = is.read(buffer, totalLength, buffer.length - totalLength)) != -1) {
-                totalLength += read;
-
-                // Expand the buffer
-                if (totalLength >= buffer.length - 1) {
-                    final byte[] newBuffer = new byte[buffer.length + BUFFER_SIZE];
-                    System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-                    buffer = newBuffer;
-                }
-            }
-
-            // Write the bytes to a byte array with the proper length,
-            // we don't want any trailing bytes when pushing the byte
-            // array through the transformers
-            byte[] result = new byte[totalLength];
-            System.arraycopy(buffer, 0, result, 0, totalLength);
-
-            // Let's start transforming the class
-            for (ClassTransformer transformer : this.transformers) {
-                try {
-                    result = transformer.transform(this, name, result);
-                } catch (Exception e) {
-                    System.err.println("An error occurred while transforming " + name + ": " + e);
-                }
-            }
-
-            return defineClass(name, result, 0, result.length, url);
-        } catch (Throwable e) {
-            this.invalidClasses.add(name);
-            throw new ClassNotFoundException(name, e);
-        }
+        return defineClass(name, url, true);
     }
 
-    private Class<?> defineClass(String name, URL url) throws ClassNotFoundException {
+    private Class<?> defineClass(String name, URL url, boolean transform) throws ClassNotFoundException {
         try (InputStream is = url.openStream()) {
             // Get the buffer
             byte[] buffer = this.loadBuffer.get();
 
             int read;
-            int totalLength = 0;
-            while ((read = is.read(buffer, totalLength, buffer.length - totalLength)) != -1) {
-                totalLength += read;
+            int length = 0;
+            while ((read = is.read(buffer, length, buffer.length - length)) != -1) {
+                length += read;
 
                 // Expand the buffer
-                if (totalLength >= buffer.length - 1) {
+                if (length >= buffer.length - 1) {
                     final byte[] newBuffer = new byte[buffer.length + BUFFER_SIZE];
                     System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
                     buffer = newBuffer;
                 }
             }
 
-            return defineClass(name, buffer, 0, totalLength, url);
+            if (transform) {
+                // Write the bytes to a byte array with the proper length,
+                // we don't want any trailing bytes when pushing the byte
+                // array through the transformers
+                byte[] result = new byte[length];
+                System.arraycopy(buffer, 0, result, 0, length);
+
+                // Let's start transforming the class
+                for (ClassTransformer transformer : this.transformers) {
+                    try {
+                        result = transformer.transform(this, name, result);
+                    } catch (Exception e) {
+                        System.err.println("An error occurred while transforming " + name + ": " + e);
+                    }
+                }
+
+                buffer = result;
+                length = result.length;
+            }
+
+            return defineClass(name, buffer, 0, length, url);
         } catch (IOException e) {
             this.invalidClasses.add(name);
             throw new ClassNotFoundException(name, e);
