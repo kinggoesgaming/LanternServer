@@ -26,11 +26,12 @@
 package org.lanternpowered.server.inventory;
 
 import org.spongepowered.api.item.inventory.Inventory;
+import org.spongepowered.api.item.inventory.crafting.CraftingGridInventory;
 import org.spongepowered.api.item.inventory.crafting.CraftingInventory;
 import org.spongepowered.api.item.inventory.crafting.CraftingOutput;
-import org.spongepowered.api.item.inventory.type.GridInventory;
-import org.spongepowered.api.item.recipe.Recipe;
+import org.spongepowered.api.item.recipe.crafting.CraftingRecipe;
 import org.spongepowered.api.text.translation.Translation;
+import org.spongepowered.api.world.World;
 
 import java.util.Optional;
 
@@ -38,7 +39,7 @@ import javax.annotation.Nullable;
 
 public class LanternCraftingInventory extends LanternGridInventory implements CraftingInventory {
 
-    private GridInventory gridInventory;
+    private CraftingGridInventory craftingGrid;
     private CraftingOutput craftingOutput;
 
     public LanternCraftingInventory(@Nullable Inventory parent) {
@@ -54,9 +55,9 @@ public class LanternCraftingInventory extends LanternGridInventory implements Cr
         super.finalizeContent();
 
         try {
-            this.gridInventory = query(GridInventory.class).first();
+            this.craftingGrid = query(CraftingGridInventory.class).first();
         } catch (ClassCastException e) {
-            throw new IllegalStateException("Unable to find the GridInventory");
+            throw new IllegalStateException("Unable to find the CraftingGridInventory");
         }
         try {
             this.craftingOutput = query(CraftingOutput.class).first();
@@ -66,8 +67,8 @@ public class LanternCraftingInventory extends LanternGridInventory implements Cr
     }
 
     @Override
-    public GridInventory getCraftingGrid() {
-        return this.gridInventory;
+    public CraftingGridInventory getCraftingGrid() {
+        return this.craftingGrid;
     }
 
     @Override
@@ -76,7 +77,7 @@ public class LanternCraftingInventory extends LanternGridInventory implements Cr
     }
 
     @Override
-    public Optional<Recipe> getRecipe() {
-        return Optional.empty();
+    public Optional<CraftingRecipe> getRecipe(World world) {
+        return this.craftingGrid.getRecipe(world);
     }
 }

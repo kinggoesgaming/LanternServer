@@ -101,7 +101,6 @@ import org.spongepowered.api.scheduler.Scheduler;
 import org.spongepowered.api.scheduler.SpongeExecutorService;
 import org.spongepowered.api.scheduler.SynchronousExecutor;
 import org.spongepowered.api.service.ServiceManager;
-import org.spongepowered.api.service.SimpleServiceManager;
 import org.spongepowered.api.service.ban.BanService;
 import org.spongepowered.api.service.pagination.PaginationService;
 import org.spongepowered.api.service.permission.PermissionService;

@@ -59,8 +59,13 @@ import javax.annotation.Nullable;
 
 public class LanternItemStack implements ItemStack, AbstractPropertyHolder, IAdditionalDataHolder {
 
+    public static ItemStack orEmpty(@Nullable ItemStack itemStack) {
+        return itemStack == null ? ItemStack.empty() : itemStack;
+    }
+
     private final ValueCollection valueCollection;
     private final AdditionalContainerCollection<DataManipulator<?, ?>> additionalContainers;
+
     private final ItemType itemType;
 
     private int quantity;
