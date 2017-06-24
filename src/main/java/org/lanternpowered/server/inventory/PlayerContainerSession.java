@@ -31,7 +31,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import org.lanternpowered.server.entity.living.player.LanternPlayer;
 import org.lanternpowered.server.game.Lantern;
-import org.lanternpowered.server.game.LanternGame;
 import org.lanternpowered.server.inventory.entity.HumanInventoryView;
 import org.lanternpowered.server.inventory.entity.HumanMainInventory;
 import org.lanternpowered.server.inventory.entity.LanternHotbar;
@@ -382,6 +381,7 @@ public class PlayerContainerSession {
         return true;
     }
 
+    @Nullable
     private LanternSlot[] getSlots(MessagePlayInPrepareCraftingGrid.SlotUpdate update) {
         //noinspection ConstantConditions
         Optional<LanternSlot> optSlot = this.openContainer.getSlotAt(update.getCraftingSlot());
@@ -399,7 +399,6 @@ public class PlayerContainerSession {
             return null;
         }
         final LanternSlot playerSlot = optSlot.get();
-
         return new LanternSlot[] { craftingSlot, playerSlot };
     }
 
