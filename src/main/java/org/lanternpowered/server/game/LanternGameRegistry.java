@@ -188,13 +188,16 @@ import org.lanternpowered.server.inventory.LanternInventoryArchetypeBuilder;
 import org.lanternpowered.server.item.firework.LanternFireworkEffectBuilder;
 import org.lanternpowered.server.item.recipe.IIngredient;
 import org.lanternpowered.server.item.recipe.LanternIngredientBuilder;
+import org.lanternpowered.server.item.recipe.LanternRecipeRegistryModule;
 import org.lanternpowered.server.item.recipe.crafting.IShapedCraftingRecipe;
 import org.lanternpowered.server.item.recipe.crafting.IShapelessCraftingRecipe;
+import org.lanternpowered.server.item.recipe.crafting.LanternCraftingRecipeRegistry;
 import org.lanternpowered.server.item.recipe.crafting.LanternShapedCraftingRecipe;
 import org.lanternpowered.server.item.recipe.crafting.LanternShapedCraftingRecipeBuilder;
 import org.lanternpowered.server.item.recipe.crafting.LanternShapelessCraftingRecipeBuilder;
 import org.lanternpowered.server.item.recipe.smelting.ISmeltingRecipe;
 import org.lanternpowered.server.item.recipe.smelting.LanternSmeltingRecipeBuilder;
+import org.lanternpowered.server.item.recipe.smelting.LanternSmeltingRecipeRegistry;
 import org.lanternpowered.server.network.entity.EntityProtocolType;
 import org.lanternpowered.server.network.entity.EntityProtocolTypeRegistryModule;
 import org.lanternpowered.server.network.status.LanternFavicon;
@@ -332,7 +335,9 @@ import org.spongepowered.api.item.inventory.InventoryArchetype;
 import org.spongepowered.api.item.inventory.equipment.EquipmentType;
 import org.spongepowered.api.item.merchant.VillagerRegistry;
 import org.spongepowered.api.item.recipe.RecipeRegistry;
+import org.spongepowered.api.item.recipe.crafting.CraftingRecipe;
 import org.spongepowered.api.item.recipe.crafting.CraftingRecipeRegistry;
+import org.spongepowered.api.item.recipe.crafting.CraftingRecipes;
 import org.spongepowered.api.item.recipe.crafting.Ingredient;
 import org.spongepowered.api.item.recipe.crafting.ShapedCraftingRecipe;
 import org.spongepowered.api.item.recipe.crafting.ShapelessCraftingRecipe;
@@ -422,6 +427,11 @@ public class LanternGameRegistry implements GameRegistry {
     private final LanternGame game;
     private final LanternResourcePackFactory resourcePackFactory = new LanternResourcePackFactory();
     private final LanternAttributeCalculator attributeCalculator = new LanternAttributeCalculator();
+
+    private final LanternSmeltingRecipeRegistry smeltingRecipeRegistry =
+            new LanternSmeltingRecipeRegistry(new LanternRecipeRegistryModule<>(null));
+    private final LanternCraftingRecipeRegistry craftingRecipeRegistry =
+            new LanternCraftingRecipeRegistry(new LanternRecipeRegistryModule<>(CraftingRecipes.class));
 
     private final Map<Class<? extends CatalogType>, CatalogRegistryModule<?>> catalogRegistryMap = new IdentityHashMap<>();
     private final Map<Class<? extends RegistryModule>, RegistryModule> classMap = new IdentityHashMap<>();
@@ -611,6 +621,9 @@ public class LanternGameRegistry implements GameRegistry {
                 .registerModule(Statistic.class, StatisticRegistryModule.get())
                 .registerModule(new AdvancementTreeRegistryModule())
                 .registerModule(DataRegistration.class, DataManipulatorRegistryModule.get())
+                // Recipes
+                .registerModule(CraftingRecipe.class, this.craftingRecipeRegistry.getRegistryModule())
+                .registerModule(ISmeltingRecipe.class, this.smeltingRecipeRegistry.getRegistryModule())
                 // Script registry modules
                 .registerModule(Parameter.class, new ContextParameterRegistryModule())
                 .registerModule(ActionType.class, ActionTypeRegistryModule.get())
@@ -1055,12 +1068,12 @@ public class LanternGameRegistry implements GameRegistry {
 
     @Override
     public CraftingRecipeRegistry getCraftingRecipeRegistry() {
-        return null;
+        return this.craftingRecipeRegistry;
     }
 
     @Override
     public SmeltingRecipeRegistry getSmeltingRecipeRegistry() {
-        return null;
+        return this.smeltingRecipeRegistry;
     }
 
     @Override
