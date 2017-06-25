@@ -185,6 +185,7 @@ import org.lanternpowered.server.game.registry.type.world.WorldArchetypeRegistry
 import org.lanternpowered.server.game.registry.type.world.biome.BiomeRegistryModule;
 import org.lanternpowered.server.game.registry.util.RegistryHelper;
 import org.lanternpowered.server.inventory.LanternInventoryArchetypeBuilder;
+import org.lanternpowered.server.inventory.LanternItemStackBuilder;
 import org.lanternpowered.server.item.firework.LanternFireworkEffectBuilder;
 import org.lanternpowered.server.item.recipe.IIngredient;
 import org.lanternpowered.server.item.recipe.LanternIngredientBuilder;
@@ -192,6 +193,7 @@ import org.lanternpowered.server.item.recipe.LanternRecipeRegistryModule;
 import org.lanternpowered.server.item.recipe.crafting.IShapedCraftingRecipe;
 import org.lanternpowered.server.item.recipe.crafting.IShapelessCraftingRecipe;
 import org.lanternpowered.server.item.recipe.crafting.LanternCraftingRecipeRegistry;
+import org.lanternpowered.server.item.recipe.crafting.LanternCraftingRecipeRegistryModule;
 import org.lanternpowered.server.item.recipe.crafting.LanternShapedCraftingRecipe;
 import org.lanternpowered.server.item.recipe.crafting.LanternShapedCraftingRecipeBuilder;
 import org.lanternpowered.server.item.recipe.crafting.LanternShapelessCraftingRecipeBuilder;
@@ -332,6 +334,7 @@ import org.spongepowered.api.item.FireworkEffect;
 import org.spongepowered.api.item.FireworkShape;
 import org.spongepowered.api.item.ItemType;
 import org.spongepowered.api.item.inventory.InventoryArchetype;
+import org.spongepowered.api.item.inventory.ItemStack;
 import org.spongepowered.api.item.inventory.equipment.EquipmentType;
 import org.spongepowered.api.item.merchant.VillagerRegistry;
 import org.spongepowered.api.item.recipe.RecipeRegistry;
@@ -431,7 +434,7 @@ public class LanternGameRegistry implements GameRegistry {
     private final LanternSmeltingRecipeRegistry smeltingRecipeRegistry =
             new LanternSmeltingRecipeRegistry(new LanternRecipeRegistryModule<>(null));
     private final LanternCraftingRecipeRegistry craftingRecipeRegistry =
-            new LanternCraftingRecipeRegistry(new LanternRecipeRegistryModule<>(CraftingRecipes.class));
+            new LanternCraftingRecipeRegistry(new LanternCraftingRecipeRegistryModule());
 
     private final Map<Class<? extends CatalogType>, CatalogRegistryModule<?>> catalogRegistryMap = new IdentityHashMap<>();
     private final Map<Class<? extends RegistryModule>, RegistryModule> classMap = new IdentityHashMap<>();
@@ -491,6 +494,7 @@ public class LanternGameRegistry implements GameRegistry {
                 .registerBuilderSupplier(StatisticBuilder.class, StatisticBuilder::create)
                 .registerBuilderSupplier(DataRegistration.Builder.class, LanternDataRegistrationBuilder::new)
                 .registerBuilderSupplier(WorldBorder.Builder.class, LanternWorldBorderBuilder::new)
+                .registerBuilderSupplier(ItemStack.Builder.class, LanternItemStackBuilder::new)
                 // Recipes
                 .registerBuilderSupplier(ShapedCraftingRecipe.Builder.class, LanternShapedCraftingRecipeBuilder::new)
                 .registerBuilderSupplier(IShapedCraftingRecipe.Builder.class, LanternShapedCraftingRecipeBuilder::new)

@@ -427,7 +427,7 @@ public abstract class AbstractMutableInventory extends AbstractInventory {
     }
 
     @Override
-    public void add(ContainerViewListener listener) {
+    public void addViewListener(ContainerViewListener listener) {
         checkNotNull(listener, "listener");
         this.viewerListeners.add(listener);
     }

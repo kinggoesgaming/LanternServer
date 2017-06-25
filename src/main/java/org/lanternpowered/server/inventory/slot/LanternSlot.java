@@ -77,6 +77,7 @@ public class LanternSlot extends AbstractMutableInventory implements Slot {
      * All the {@link LanternContainer}s this slot is attached to.
      */
     private final Set<LanternContainer> containers = Collections.newSetFromMap(new WeakHashMap<>());
+    private final List<SlotChangeListener> changeListeners = new ArrayList<>();
 
     public LanternSlot(@Nullable Inventory parent) {
         super(parent, null);
@@ -95,6 +96,9 @@ public class LanternSlot extends AbstractMutableInventory implements Slot {
     }
 
     private void queueUpdate() {
+        for (SlotChangeListener listener : this.changeListeners) {
+            listener.accept(this);
+        }
         for (LanternContainer container : this.containers) {
             container.queueSlotChange(this);
         }
@@ -125,8 +129,8 @@ public class LanternSlot extends AbstractMutableInventory implements Slot {
      */
     @Override
     public boolean isValidItem(ItemStack stack) {
-        return this.doesAllowEquipmentType(stack) &&
-                this.doesAcceptItemType(stack);
+        return doesAllowEquipmentType(stack) &&
+                doesAcceptItemType(stack);
     }
 
     @Override
@@ -152,6 +156,12 @@ public class LanternSlot extends AbstractMutableInventory implements Slot {
     }
 
     @Override
+    public void addChangeListener(SlotChangeListener listener) {
+        checkNotNull(listener, "listener");
+        this.changeListeners.add(listener);
+    }
+
+    @Override
     public Optional<ItemStack> poll(Predicate<ItemStack> matcher) {
         checkNotNull(matcher, "matcher");
         if (this.itemStack == null || !matcher.test(this.itemStack)) {
@@ -161,7 +171,7 @@ public class LanternSlot extends AbstractMutableInventory implements Slot {
         // Just remove the item, the complete stack was
         // being polled
         this.itemStack = null;
-        this.queueUpdate();
+        queueUpdate();
         return Optional.of(itemStack);
     }
 
@@ -183,7 +193,7 @@ public class LanternSlot extends AbstractMutableInventory implements Slot {
         } else {
             this.itemStack = null;
         }
-        this.queueUpdate();
+        queueUpdate();
         return Optional.of(itemStack);
     }
 
