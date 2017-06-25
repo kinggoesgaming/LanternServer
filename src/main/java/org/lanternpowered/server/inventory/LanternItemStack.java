@@ -257,6 +257,6 @@ public class LanternItemStack implements ItemStack, AbstractPropertyHolder, IAdd
     public static ItemStackSnapshot toSnapshot(@Nullable ItemStack itemStack) {
         itemStack = toNullable(itemStack);
         //noinspection ConstantConditions
-        return itemStack == null ? ItemStackSnapshot.NONE : itemStack.createSnapshot();
+        return itemStack == null || itemStack.isEmpty() ? ItemStackSnapshot.NONE : itemStack.createSnapshot();
     }
 }

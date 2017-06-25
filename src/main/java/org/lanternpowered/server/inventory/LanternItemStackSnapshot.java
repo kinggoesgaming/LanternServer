@@ -166,6 +166,12 @@ public class LanternItemStackSnapshot implements ItemStackSnapshot, IImmutableDa
         return this.itemType == that.getType() && compareRawDataMaps(this, (IValueContainer) that);
     }
 
+    public static boolean isSimilar(@Nullable ItemStackSnapshot itemStackA, @Nullable ItemStackSnapshot itemStackB) {
+        //noinspection SimplifiableConditionalExpression
+        return itemStackA == itemStackB ? true : itemStackA == null || itemStackB == null ? false :
+                ((LanternItemStackSnapshot) itemStackA).isSimilar(itemStackB);
+    }
+
     @SuppressWarnings("unchecked")
     static boolean compareRawDataMaps(IValueContainer container1, IValueContainer container2) {
         final ValueCollection valueCollection1 = container1.getValueCollection();
