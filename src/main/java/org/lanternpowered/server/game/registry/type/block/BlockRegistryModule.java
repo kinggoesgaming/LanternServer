@@ -953,6 +953,7 @@ public final class BlockRegistryModule extends AdditionalPluginCatalogRegistryMo
                         .properties(builder -> builder
                                 .add(lightEmission(13)))
                         .translation("tile.furnace.name")
+                        .tileEntityType(() -> TileEntityTypes.FURNACE)
                         .build("minecraft", "lit_furnace"),
                 this::directionData);
         ////////////////////////////
@@ -1504,6 +1505,9 @@ public final class BlockRegistryModule extends AdditionalPluginCatalogRegistryMo
 
     private BlockTypeBuilder furnaceBuilder() {
         return horizontalFacingBuilder()
+                .tileEntityType(() -> TileEntityTypes.FURNACE)
+                .behaviors(pipeline -> pipeline
+                        .add(new OpeneableContainerInteractionBehavior()))
                 .properties(builder -> builder
                         .add(hardness(3.5))
                         .add(blastResistance(17.5)));
