@@ -53,6 +53,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 public class LanternItemStackSnapshot implements ItemStackSnapshot, IImmutableDataHolder<ItemStackSnapshot>,
         AbstractPropertyHolder, AdditionalContainerHolder<ImmutableDataManipulator<?,?>> {
 
