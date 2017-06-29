@@ -43,7 +43,6 @@ import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.entity.EntitySnapshot;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.cause.NamedCause;
-import org.spongepowered.api.item.inventory.ItemStackSnapshot;
 import org.spongepowered.api.item.inventory.transaction.SlotTransaction;
 import org.spongepowered.api.util.Identifiable;
 import org.spongepowered.api.world.BlockChangeFlag;
@@ -54,7 +53,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -111,6 +109,7 @@ public class BehaviorContextImpl implements BehaviorContext {
 
     @Override
     public void restoreSnapshot(BehaviorContext.Snapshot snapshot) {
+        checkNotNull(snapshot, "snapshot");
         final Snapshot snapshot1 = (Snapshot) snapshot;
         this.parameterValues = new Int2ObjectOpenHashMap<>(snapshot1.parameterValues);
         this.blockSnapshots = new HashMap<>(snapshot1.blockSnapshots);
@@ -290,10 +289,8 @@ public class BehaviorContextImpl implements BehaviorContext {
     public <B extends Behavior> BehaviorResult process(BehaviorPipeline<B> pipeline, BehaviorProcessFunction<B> function) {
         Snapshot snapshot = null;
         BehaviorResult result = null;
-        final Iterator<B> it = pipeline.getBehaviors().iterator();
-        while (it.hasNext()) {
-            final B behavior = it.next();
-            if (snapshot == null && it.hasNext()) {
+        for (B behavior : pipeline.getBehaviors()) {
+            if (snapshot == null) {
                 snapshot = createSnapshot();
             }
             result = function.process(this, behavior);
@@ -306,9 +303,6 @@ public class BehaviorContextImpl implements BehaviorContext {
             } else if (result == BehaviorResult.CONTINUE) {
                 snapshot = createSnapshot();
             }
-        }
-        if (snapshot != null) {
-            restoreSnapshot(snapshot);
         }
         return result == null ? BehaviorResult.FAIL : result;
     }
