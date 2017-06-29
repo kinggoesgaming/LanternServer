@@ -586,7 +586,7 @@ public class LanternGameRegistry implements GameRegistry {
                 .registerModule(Statistic.class, StatisticRegistryModule.get())
                 .registerModule(new AdvancementTreeRegistryModule())
                 .registerModule(DataRegistration.class, DataManipulatorRegistryModule.get())
-                .registerModule(RecordType.class, RecordTypeRegistryModule.class)
+                .registerModule(RecordType.class, RecordTypeRegistryModule.get())
                 // Script registry modules
                 .registerModule(Parameter.class, new ContextParameterRegistryModule())
                 .registerModule(ActionType.class, ActionTypeRegistryModule.get())

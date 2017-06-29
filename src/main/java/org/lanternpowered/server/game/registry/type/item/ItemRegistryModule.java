@@ -68,6 +68,7 @@ import org.lanternpowered.server.item.TranslationProvider;
 import org.lanternpowered.server.item.behavior.vanilla.ArmorQuickEquipInteractionBehavior;
 import org.lanternpowered.server.item.behavior.vanilla.ConsumableInteractionBehavior;
 import org.lanternpowered.server.item.behavior.vanilla.OpenHeldBookBehavior;
+import org.lanternpowered.server.item.behavior.vanilla.RecordInteractionBehavior;
 import org.lanternpowered.server.item.behavior.vanilla.ShieldInteractionBehavior;
 import org.lanternpowered.server.item.behavior.vanilla.consumable.CookedFishForwardingPropertyProvider;
 import org.lanternpowered.server.item.behavior.vanilla.consumable.FishForwardingPropertyProvider;
@@ -1754,7 +1755,9 @@ public final class ItemRegistryModule extends AdditionalPluginCatalogRegistryMod
                 .maxStackQuantity(1)
                 .properties(builder -> builder
                         .add(recordType(recordType)))
-                .translation(recordType.getTranslation());
+                .translation(recordType.getTranslation())
+                .behaviors(pipeline -> pipeline
+                        .add(new RecordInteractionBehavior()));
     }
 
     private TranslationProvider coloredTranslation(String pattern, DyeColor defaultColor) {

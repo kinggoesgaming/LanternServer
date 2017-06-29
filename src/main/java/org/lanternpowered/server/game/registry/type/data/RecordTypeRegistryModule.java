@@ -44,17 +44,17 @@ public class RecordTypeRegistryModule extends InternalPluginCatalogRegistryModul
 
     @Override
     public void registerDefaults() {
-        register(new LanternRecordType("minecraft", "thirteen", "item.record.13.name", 0));
-        register(new LanternRecordType("minecraft", "cat", "item.record.cat.name", 1));
-        register(new LanternRecordType("minecraft", "blocks", "item.record.blocks.name", 2));
-        register(new LanternRecordType("minecraft", "chirp", "item.record.chirp.name", 3));
-        register(new LanternRecordType("minecraft", "far", "item.record.far.name", 4));
-        register(new LanternRecordType("minecraft", "mall", "item.record.mall.name", 5));
-        register(new LanternRecordType("minecraft", "mellohi", "item.record.mellohi.name", 6));
-        register(new LanternRecordType("minecraft", "stal", "item.record.stal.name", 7));
-        register(new LanternRecordType("minecraft", "strad", "item.record.strad.name", 8));
-        register(new LanternRecordType("minecraft", "ward", "item.record.ward.name", 9));
-        register(new LanternRecordType("minecraft", "eleven", "item.record.11.name", 10));
-        register(new LanternRecordType("minecraft", "wait", "item.record.wait.name", 11));
+        register(new LanternRecordType("minecraft", "thirteen", "item.record.13.desc", 0));
+        register(new LanternRecordType("minecraft", "cat", "item.record.cat.desc", 1));
+        register(new LanternRecordType("minecraft", "blocks", "item.record.blocks.desc", 2));
+        register(new LanternRecordType("minecraft", "chirp", "item.record.chirp.desc", 3));
+        register(new LanternRecordType("minecraft", "far", "item.record.far.desc", 4));
+        register(new LanternRecordType("minecraft", "mall", "item.record.mall.desc", 5));
+        register(new LanternRecordType("minecraft", "mellohi", "item.record.mellohi.desc", 6));
+        register(new LanternRecordType("minecraft", "stal", "item.record.stal.desc", 7));
+        register(new LanternRecordType("minecraft", "strad", "item.record.strad.desc", 8));
+        register(new LanternRecordType("minecraft", "ward", "item.record.ward.desc", 9));
+        register(new LanternRecordType("minecraft", "eleven", "item.record.11.desc", 10));
+        register(new LanternRecordType("minecraft", "wait", "item.record.wait.desc", 11));
     }
 }

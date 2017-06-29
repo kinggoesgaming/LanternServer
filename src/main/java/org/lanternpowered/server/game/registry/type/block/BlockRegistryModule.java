@@ -970,6 +970,20 @@ public final class BlockRegistryModule extends AdditionalPluginCatalogRegistryMo
                         .build("minecraft", "wooden_pressure_plate"),
                 this::pressurePlateData);
         ////////////////////
+        ///    Jukebox   ///
+        ////////////////////
+        register(84, simpleBuilder()
+                        .traits(LanternBooleanTraits.HAS_RECORD)
+                        .defaultState(state -> state
+                                .withTrait(LanternBooleanTraits.HAS_RECORD, false).get())
+                        .properties(builder -> builder
+                                .add(hardness(2.0))
+                                .add(blastResistance(10.0)))
+                        .tileEntityType(() -> TileEntityTypes.JUKEBOX)
+                        .translation("tile.jukebox.name")
+                        .build("minecraft", "jukebox"),
+                state -> (byte) (state.getTraitValue(LanternBooleanTraits.HAS_RECORD).get() ? 1 : 0));
+        ////////////////////
         ///    Pumpkin   ///
         ////////////////////
         register(86, pumpkinBuilder()

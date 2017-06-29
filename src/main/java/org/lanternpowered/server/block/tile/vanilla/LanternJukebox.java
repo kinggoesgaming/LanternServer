@@ -28,24 +28,41 @@ package org.lanternpowered.server.block.tile.vanilla;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.lanternpowered.server.block.tile.LanternTileEntity;
+import org.lanternpowered.server.block.trait.LanternBooleanTraits;
+import org.lanternpowered.server.data.type.record.RecordType;
+import org.lanternpowered.server.item.property.RecordProperty;
+import org.lanternpowered.server.network.vanilla.message.type.play.MessagePlayOutRecord;
+import org.lanternpowered.server.world.LanternWorld;
 import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.block.BlockTypes;
 import org.spongepowered.api.block.tileentity.Jukebox;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.item.inventory.ItemStack;
 import org.spongepowered.api.item.inventory.ItemStackSnapshot;
+import org.spongepowered.api.world.Location;
+import org.spongepowered.api.world.World;
 
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-public class LanternJukebox extends LanternTileEntity implements Jukebox {
+public final class LanternJukebox extends LanternTileEntity implements Jukebox {
 
-    @Nullable private ItemStackSnapshot record;
+    @Nullable private ItemStack record;
     private boolean playing;
 
     @Override
     public void playRecord() {
-        this.playing = true;
+        if (this.record != null) {
+            this.playing = true;
+            final Location<World> location = getLocation();
+            final RecordProperty property = this.record.getProperty(RecordProperty.class).orElse(null);
+            final RecordType recordType = property == null ? null : property.getValue();
+            if (recordType != null) {
+                ((LanternWorld) location.getExtent()).broadcast(
+                        () -> new MessagePlayOutRecord(location.getBlockPosition(), recordType));
+            }
+        }
     }
 
     /**
@@ -59,13 +76,32 @@ public class LanternJukebox extends LanternTileEntity implements Jukebox {
 
     @Override
     public void stopRecord() {
-        this.playing = false;
+        if (this.playing) {
+            this.playing = false;
+            final Location<World> location = getLocation();
+            ((LanternWorld) location.getExtent()).broadcast(
+                    () -> new MessagePlayOutRecord(location.getBlockPosition(), null));
+        }
     }
 
     @Override
     public void ejectRecord() {
+        stopRecord();
+        final boolean update = this.record != null;
         this.record = null;
+        this.playing = false;
+        if (update) {
+            updateBlockState();
+        }
         // TODO: Drop the item
+    }
+
+    private void updateBlockState() {
+        final Location<World> location = getLocation();
+        final BlockState block = location.getBlock();
+        location.setBlock(block
+                .withTrait(LanternBooleanTraits.HAS_RECORD, this.record != null)
+                .orElse(block), Cause.source(this).build());
     }
 
     /**
@@ -74,22 +110,33 @@ public class LanternJukebox extends LanternTileEntity implements Jukebox {
      *
      * @return The record item
      */
-    public Optional<ItemStackSnapshot> ejectRecordItem() {
+    public Optional<ItemStack> ejectRecordItem() {
+        if (this.record == null) {
+            return Optional.empty();
+        }
+        this.playing = false;
         try {
-            return Optional.ofNullable(this.record);
+            return Optional.of(this.record);
         } finally {
             this.record = null;
+            updateBlockState();
         }
     }
 
     @Override
     public void insertRecord(ItemStack record) {
         checkNotNull(record, "record");
-        this.record = record.createSnapshot();
+        ejectRecord();
+        final boolean update = this.record == null;
+        this.record = record.copy();
+        if (update) {
+            updateBlockState();
+        }
     }
 
     @Override
     public BlockState getBlock() {
-        return BlockTypes.JUKEBOX.getDefaultState();
+        final BlockState block = getLocation().getBlock();
+        return block.getType() == BlockTypes.JUKEBOX ? block : BlockTypes.JUKEBOX.getDefaultState();
     }
 }
