@@ -53,15 +53,16 @@ public final class LanternJukebox extends LanternTileEntity implements Jukebox {
 
     @Override
     public void playRecord() {
-        if (this.record != null) {
-            this.playing = true;
-            final Location<World> location = getLocation();
-            final RecordProperty property = this.record.getProperty(RecordProperty.class).orElse(null);
-            final RecordType recordType = property == null ? null : property.getValue();
-            if (recordType != null) {
-                ((LanternWorld) location.getExtent()).broadcast(
-                        () -> new MessagePlayOutRecord(location.getBlockPosition(), recordType));
-            }
+        if (this.record == null) {
+            return;
+        }
+        this.playing = true;
+        final Location<World> location = getLocation();
+        final RecordProperty property = this.record.getProperty(RecordProperty.class).orElse(null);
+        final RecordType recordType = property == null ? null : property.getValue();
+        if (recordType != null) {
+            ((LanternWorld) location.getExtent()).broadcast(
+                    () -> new MessagePlayOutRecord(location.getBlockPosition(), recordType));
         }
     }
 
@@ -76,23 +77,23 @@ public final class LanternJukebox extends LanternTileEntity implements Jukebox {
 
     @Override
     public void stopRecord() {
-        if (this.playing) {
-            this.playing = false;
-            final Location<World> location = getLocation();
-            ((LanternWorld) location.getExtent()).broadcast(
-                    () -> new MessagePlayOutRecord(location.getBlockPosition(), null));
+        if (!this.playing) {
+            return;
         }
+        this.playing = false;
+        final Location<World> location = getLocation();
+        ((LanternWorld) location.getExtent()).broadcast(
+                () -> new MessagePlayOutRecord(location.getBlockPosition(), null));
     }
 
     @Override
     public void ejectRecord() {
-        stopRecord();
-        final boolean update = this.record != null;
-        this.record = null;
-        this.playing = false;
-        if (update) {
-            updateBlockState();
+        if (this.record == null) {
+            return;
         }
+        stopRecord();
+        this.record = null;
+        updateBlockState();
         // TODO: Drop the item
     }
 
@@ -114,7 +115,7 @@ public final class LanternJukebox extends LanternTileEntity implements Jukebox {
         if (this.record == null) {
             return Optional.empty();
         }
-        this.playing = false;
+        stopRecord();
         try {
             return Optional.of(this.record);
         } finally {
@@ -127,11 +128,8 @@ public final class LanternJukebox extends LanternTileEntity implements Jukebox {
     public void insertRecord(ItemStack record) {
         checkNotNull(record, "record");
         ejectRecord();
-        final boolean update = this.record == null;
         this.record = record.copy();
-        if (update) {
-            updateBlockState();
-        }
+        updateBlockState();
     }
 
     @Override

@@ -46,4 +46,9 @@ public enum BehaviorResult {
      * move to the next behavior, discarding all the current changes.
      */
     PASS,
+    ;
+
+    public boolean isSuccess() {
+        return this == SUCCESS || this == CONTINUE;
+    }
 }

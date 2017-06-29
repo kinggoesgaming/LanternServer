@@ -58,6 +58,7 @@ import org.lanternpowered.server.block.behavior.vanilla.ChestPlacementBehavior;
 import org.lanternpowered.server.block.behavior.vanilla.EnderChestInteractionBehavior;
 import org.lanternpowered.server.block.behavior.vanilla.HopperPlacementBehavior;
 import org.lanternpowered.server.block.behavior.vanilla.HorizontalRotationPlacementBehavior;
+import org.lanternpowered.server.block.behavior.vanilla.JukeboxInteractionBehavior;
 import org.lanternpowered.server.block.behavior.vanilla.LogAxisRotationPlacementBehavior;
 import org.lanternpowered.server.block.behavior.vanilla.OpeneableContainerInteractionBehavior;
 import org.lanternpowered.server.block.behavior.vanilla.OppositeFaceDirectionalPlacementBehavior;
@@ -973,6 +974,7 @@ public final class BlockRegistryModule extends AdditionalPluginCatalogRegistryMo
         ///    Jukebox   ///
         ////////////////////
         register(84, simpleBuilder()
+                        .itemType()
                         .traits(LanternBooleanTraits.HAS_RECORD)
                         .defaultState(state -> state
                                 .withTrait(LanternBooleanTraits.HAS_RECORD, false).get())
@@ -981,6 +983,8 @@ public final class BlockRegistryModule extends AdditionalPluginCatalogRegistryMo
                                 .add(blastResistance(10.0)))
                         .tileEntityType(() -> TileEntityTypes.JUKEBOX)
                         .translation("tile.jukebox.name")
+                        .behaviors(pipeline -> pipeline
+                                .add(new JukeboxInteractionBehavior()))
                         .build("minecraft", "jukebox"),
                 state -> (byte) (state.getTraitValue(LanternBooleanTraits.HAS_RECORD).get() ? 1 : 0));
         ////////////////////
